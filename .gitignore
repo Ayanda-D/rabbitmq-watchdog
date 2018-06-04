@@ -1,0 +1,14 @@
+.sw?
+.*.sw?
+*.beam
+.DS_Store
+.erlang.mk/
+/cover/
+/deps/
+/doc/
+/ebin/
+/logs/
+/plugins/
+/xrefr
+
+rabbitmq_watchdog.d
