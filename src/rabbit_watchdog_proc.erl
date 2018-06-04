@@ -87,7 +87,9 @@ handle_info({Ref, watchdog}, S = #state{ref        = Ref,
             {noaction, CBstate0} -> {ok, CBstate0};
             {action,   CBstate0} ->
                 case catch CBMod:action(CBstate0) of
-                    {ok, _CBstate1} = Return -> Return;
+                    {ok, _CBstate1} = Return ->
+                        ?WARN_MSG("action applied"),
+                        Return;
                     Other ->
                         %% If there's a problem, terminate watchdog proc
                         exit(?WATCHDOG_ERR(CBMod, action, Other))
@@ -104,7 +106,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State = #state{callback = CBMod, callback_s = CBstate}) ->
-    ?INFO_MSG("~p terminating", [CBMod]),
+    ?INFO_MSG("terminating"),
     catch CBMod:terminate(CBstate),
     ok.
 
