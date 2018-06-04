@@ -8,11 +8,20 @@ The RabbitMQ Watchdog plugin is a sub-system designed and built to target other 
 
 The RabbitMQ Watchdog's design consists of a top level supervisor, which when started, will in turn start underlying watchdog process supervisors for each configured watchdog. The underlying watchdog process supervisors will initiate the actual watchdog process, which will interact with the specified callback implemenation of the watchdog behaviour.
 
-<p style="text-align:center"><img src="./priv/images/rabbitmq_watchdog.png" align="centre" height="550" width="450"></p>
+<p style="text-align:center"><img src="./priv/images/rabbitmq_watchdog.png" align="centre" height="450" width="360"></p>
 <p style="text-align:center"><b>Fig 1: RabbitMQ Watchdog Plugin Design</b></p>
 
 Each watchdog process will execute over time intervals (depicted as `T1`, `T2`, `T3`, in the diagram below), whereby on each operation cycle, specific validations and actions will be executed based on the configured callback implementation interacted with. The diagram above illustrates part of the plugin's internal design. The plugin has been designed to be highly extensible, providing support for multiple watchdogs through a matter of implementing watchdog behaviour callbacks, for various applications or scenarios executing or taking place on a RabbitMQ node, respectively, and configuring them appropriately. All active watchdog processes will operate in an isolated, non-blocking manner to each other, meaning the increase/addition of the number of watchdog's will **not** pose as potential performance degredation factor (unless the specific callback logic imposes inefficient validation and action operations - which must be **strictly refrained from** at all times).
 
+## Watchdogs
+
+All watchdog's are an implementation of the `rabbit_watchdog` behaviour, which requires four callback functions required for initialization, validation, executing action plans and carrying out any necessary cleanup procedures on termination. Currently supported watchdogs are summarized in the following table:
+
+| WATCHDOG NAME  | DESCRIPTION  | INTERVAL (ms) |
+|---|---|---|
+| rabbit\_watchdog\_rabbit  | The rabbit application watchdog carries out healthecks at each intervals. On health-check failure, it does notcarry out any drastic corrective actions like restarting the application, no. Instead it writes a warning to the logs indicating that a health check has just failed. Altering behaviour of how it out corective actions is left to the engineers descretion | 5000 |
+| rabbit\_watchdog\_shovel | The shovel watchdog checks if configured shovels are consistant with the number of active shovels. If inconsistances are found (perhaps network issues were experienced and links were permanantly terminated), the shovel application will be restarted in attempt to restablished connection links | 5000 |
+| rabbit\_watchdog\_management | Resource alarms are checked, in case the RabbitMQ node is under high memory utilization. In case of any memory problems, this watchdog will restart the management application | 3600000 |
 
 ## Supported RabbitMQ Versions
 
