@@ -28,9 +28,9 @@ The Watchdog plugin is configured in the `rabbitmq.config` or `advanced.config` 
 ```
 [{rabbitmq_watchdog,
     [{watchdogs,
-        [{"Rabbit Watchdog", rabbit_watchdog_rabbit, 5000, []},
-         {"Shovel Watchdog", rabbit_watchdog_shovel, 5000, [{delay, 100}]},
-         {"Management Watchdog", rabbit_watchdog_management, 5000, []}]}]
+        [{"Rabbit Watchdog", rabbit_watchdog_rabbit, 5000, [{delay, 1000}]},
+         {"Shovel Watchdog", rabbit_watchdog_shovel, 5000, [{delay, 1000}]},
+         {"Management Watchdog", rabbit_watchdog_management, 3600000, []}]}]
  }].
 ```
 

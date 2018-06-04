@@ -6,9 +6,9 @@ define PROJECT_ENV
 [
   {watchdogs,
      [  %% {Title, Implementation/Callback, WatchdogInterval}
-	    {"Rabbit Watchdog", rabbit_watchdog_rabbit, 5000, [] },
-	    {"Shovel Watchdog", rabbit_watchdog_shovel, 5000, [{delay, 100}] },
-        {"Management Watchdog", rabbit_watchdog_management, 60000, []}
+        {"Rabbit Watchdog",     rabbit_watchdog_rabbit, 5000, [{delay, 1000}] },
+        {"Shovel Watchdog",     rabbit_watchdog_shovel, 5000, [{delay, 1000}] },
+        {"Management Watchdog", rabbit_watchdog_management, 3600000, []}
 	  ]
 	}]
 endef
