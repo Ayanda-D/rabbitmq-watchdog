@@ -39,7 +39,7 @@ groups() ->
     [
       {non_parallel_tests, [], [
           watchdog_with_action_application_terminated,
-          % watchdog_with_action_link_failure,
+          watchdog_with_action_link_failure,
           watchdog_with_no_action
         ]}
     ].
@@ -91,15 +91,15 @@ watchdog_with_action_application_terminated(Config) ->
     ok = verify_running_shovel(Config),
     passed.
 
-% watchdog_with_action_link_failure(Config) ->
-%    ok = setup_watchdog(Config, 0, 200, 40),
-%    setup_shovels(Config),
-%    ok = drop_shovel_link(Config, ?SHOVEL),
-%    ok = verify_terminated_shovel(Config, ?SHOVEL),
-%    rabbit_watchdog:delay(300),
-%    ok = verify_running_shovel(Config),
-%    ok = await_running_shovel(Config, ?SHOVEL),
-%    passed.
+watchdog_with_action_link_failure(Config) ->
+    ok = setup_watchdog(Config, 0, 200, 40),
+    setup_shovels(Config),
+    ok = drop_shovel_link_status(Config, ?SHOVEL),
+    ok = verify_dropped_shovel_link(Config),
+    rabbit_watchdog:delay(300),
+    ok = verify_running_shovel(Config),
+    ok = await_running_shovel(Config, ?SHOVEL),
+    passed.
 
 watchdog_with_no_action(Config) ->
     ok = setup_watchdog(Config, 0, 200, 40),
@@ -209,15 +209,16 @@ drop_shovel(Config) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, 0,
       application, stop, [rabbitmq_shovel]).
 
-drop_shovel_link(Config, Name) ->
+drop_shovel_link_status(Config, Name) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, 0,
-      ?MODULE, drop_shovel_link1, [Name]).
+      rabbit_shovel_status, remove, [Name]).
 
-drop_shovel_link1(Name) ->
-    P = whereis(Name),
-    true = is_process_alive(P),
-    exit(P, killed),
-    false = is_process_alive(P),
+verify_dropped_shovel_link(Config) ->
+    ok = rabbit_ct_broker_helpers:rpc(Config, 0,
+      ?MODULE, verify_dropped_shovel_link1, []).
+
+verify_dropped_shovel_link1() ->
+    [] = rabbit_shovel_status:status(),
     ok.
 
 enable_shovel_plugin(Config) ->
