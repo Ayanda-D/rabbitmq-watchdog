@@ -29,6 +29,11 @@
 -define(FORBIDDEN_WINDOWS_DIRS,
     ["C:/Windows", "C:/Users", "C:\\Windows", "C:\\Users"]).
 
+-define(FORBIDDEN_REMOVAL_WARNING(Dir),
+        ?WARN_MSG("removing directory ~s is forbidden, to force "
+                  "removal specify as {~s, force | hard} in the config",
+                  [Dir, Dir])).
+
 -record(disk_wd_state,
             {os,
              udata  = [] }).
@@ -54,19 +59,34 @@ validate(State) ->
 action(State = #disk_wd_state{os = OS, udata = UData}) ->
     case rabbit_misc:pget(dirs, UData) of
         Dirs when length(Dirs) > 1 ->
-            [begin
-                IsDir = filelib:is_dir(Dir),
-                Forbbiden = is_forbidden(OS, Dir),
-                if IsDir and not Forbbiden ->
-                        ?WARN_MSG("removing directory " ++ Dir),
-                         rm_dir(OS, Dir);
-                    true -> ok
-                end
-             end || Dir <- Dirs];
+            lists:foreach(fun (Dir) -> try_remove_dir(OS, Dir) end, Dirs);
         _Other ->
             ok
     end,
     {ok, State}.
+
+try_remove_dir(OS, {Dir, Mod}) when Mod =:= force; Mod =:= hard ->
+    case filelib:is_dir(Dir) of
+        true ->
+            remove_dir_with_notice(OS, Dir);
+        _Else ->
+            ?INFO_MSG("~s does not exist", [Dir])
+    end;
+try_remove_dir(OS, {Dir, _UnknownMod}) ->
+    try_remove_dir(OS, Dir);
+try_remove_dir(OS, Dir) ->
+    case {filelib:is_dir(Dir), is_forbidden(OS, Dir)} of
+        {true, false} ->
+            remove_dir_with_notice(OS, Dir);
+        {true, true} ->
+            ?FORBIDDEN_REMOVAL_WARNING(Dir);
+        _Else ->
+            ?INFO_MSG("~s does not exist", [Dir])
+    end.
+
+remove_dir_with_notice(OS, Dir) ->
+    ?WARN_MSG("removing directory " ++ Dir),
+    rm_dir(OS, Dir).
 
 terminate(_State) ->
     ok.
