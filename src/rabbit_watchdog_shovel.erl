@@ -46,7 +46,7 @@ validate(State = #shovel_wd_state{application = Application}) ->
             %% TODO: Match shovel name as well
             RunningActiveShovels =
                 [ Name || {Name, _Type, {running, _Info}, _TS} <- ActiveShovels],
-            {if length(RunningActiveShovels) =:= NConfiguredShovels -> action;
+            {if length(RunningActiveShovels) =:= NConfiguredShovels -> noaction;
                 true -> action
             end, State};
         undefined ->
