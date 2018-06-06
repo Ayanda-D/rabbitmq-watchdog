@@ -15,6 +15,7 @@
 %%
 
 -define(DEFAULT_DELAY,      5000).
+-define(CMD(CMD),           os:cmd(CMD)).
 
 -define(WATCHDOG_ERR(M, F, Reason), {error, {M, F, Reason}}).
 

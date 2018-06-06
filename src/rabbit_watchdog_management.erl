@@ -33,12 +33,12 @@ init(UData) ->
     {ok, #mgmt_wd_state{udata = UData}}.
 
 validate(State) ->
-    {case rabbit_misc:pget(alarms, rabbit:status()) of
+    {case rabbit_alarm:get_alarms() of
          []     -> noaction;
          Alarms when is_list(Alarms) ->
-             IsResLimit = is_resource_limit(Alarms),
+             IsResLimit = is_memory_alarm(Alarms),
              if IsResLimit ->
-                    ?ERR_MSG("resource limit alarm detected"),
+                    ?ERR_MSG("memory alarm detected"),
                     action;
                 true -> noaction
              end
@@ -54,6 +54,6 @@ terminate(_State) ->
 % --------
 % Private
 % --------
-is_resource_limit([]) -> false;
-is_resource_limit([{{resource_limit, _Source, _Node}, _Info} | _Rem]) -> true;
-is_resource_limit([_|Rem]) -> is_resource_limit(Rem).
+is_memory_alarm([]) -> false;
+is_memory_alarm([{{resource_limit, memory, _Node}, _Info} | _Rem]) -> true;
+is_memory_alarm([_|Rem]) -> is_memory_alarm(Rem).
