@@ -27,12 +27,15 @@
     "/dev", "/Volumes", "/Users", "/System", "/Applications", "/Library"
     "/Network", "/private" ]).
 -define(FORBIDDEN_WINDOWS_DIRS,
-    ["C:/Windows", "C:/Users", "C:\\Windows", "C:\\Users"]).
+    [":/Windows", ":/Users", ":\\Windows", ":\\Users",
+     ":/windows", ":/users", ":\\windows", ":\\users"]).
 
 -define(FORBIDDEN_REMOVAL_WARNING(Dir),
         ?WARN_MSG("removing directory ~s is forbidden, to force "
                   "removal specify as {~s, force | hard} in the config",
                   [Dir, Dir])).
+-define(STRICTLY_FORBIDDEN_REMOVAL_WARNING(Dir),
+       ?WARN_MSG("removing directory ~s is strictly forbidden", [Dir])).
 
 -record(disk_wd_state,
             {os,
@@ -57,7 +60,7 @@ validate(State) ->
      end, State}.
 
 action(State = #disk_wd_state{os = OS, udata = UData}) ->
-    case rabbit_misc:pget(dirs, UData) of
+    case rabbit_misc:pget(rm_dirs, UData) of
         Dirs when length(Dirs) > 1 ->
             lists:foreach(fun (Dir) -> try_remove_dir(OS, Dir) end, Dirs);
         _Other ->
@@ -117,8 +120,14 @@ check(Dir, FDir) ->
         _     -> ok
     end.
 
-rm_dir(_OS, "/")        ->
-    ?WARN_MSG("removing \"/\" directory is forbidden"),
+rm_dir(_OS, "/" = Dir) ->
+    ?STRICTLY_FORBIDDEN_REMOVAL_WARNING(Dir),
+    ok;
+rm_dir(_OS, [ _, $:, $/ ] = Dir) ->
+    ?STRICTLY_FORBIDDEN_REMOVAL_WARNING(Dir),
+    ok;
+rm_dir(_OS, [ _, $:, $\\ ] = Dir) ->
+    ?STRICTLY_FORBIDDEN_REMOVAL_WARNING(Dir),
     ok;
 rm_dir({unix,  _OSname}, Dir) -> ?CMD("rm -rf "   ++ Dir);
 rm_dir({win32, _OSname}, Dir) -> ?CMD("rd /s /q " ++ Dir).

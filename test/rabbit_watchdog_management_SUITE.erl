@@ -23,8 +23,6 @@
 -define(RABBITMQ_MGMT_STARTUP_TIMEOUT, 10000).
 -define(WATCHDOG_INTERVAL, 200).
 
--define(LOW_LIMIT_WATERMARK, 0.0001).
-
 -compile(export_all).
 
 all() ->
@@ -35,7 +33,9 @@ all() ->
 groups() ->
     [
       {non_parallel_tests, [], [
-          watchdog_with_memory_alarm_detected
+          watchdog_with_memory_alarm_detected,
+          watchdog_with_unrelated_alarm_detected,
+          watchdog_with_no_alarm_detected
         ]}
     ].
 
@@ -82,7 +82,7 @@ watchdog_with_memory_alarm_detected(Config) ->
 
     OrigManagementPid = rabbitmq_management_pid(Config),
 
-    ok = trigger_memory_alarm(Config),
+    ok = rabbit_watchdog_tests_util:trigger_memory_alarm(Config),
 
     case rabbitmq_management_pid(Config) of
         OrigManagementPid ->
@@ -93,18 +93,23 @@ watchdog_with_memory_alarm_detected(Config) ->
 
     passed.
 
+watchdog_with_unrelated_alarm_detected(Config) ->
+    ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, 40),
+    OrigManagementPid = rabbitmq_management_pid(Config),
+    ok = rabbit_watchdog_tests_util:trigger_disk_free_alarm(Config),
+    OrigManagementPid = rabbitmq_management_pid(Config),
+    passed.
+
+watchdog_with_no_alarm_detected(Config) ->
+    ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, 40),
+    OrigManagementPid = rabbitmq_management_pid(Config),
+    rabbit_watchdog:delay(?WATCHDOG_INTERVAL * 2),
+    OrigManagementPid = rabbitmq_management_pid(Config),
+    passed.
+
 %% ---------
 %% Internal
 %% ---------
-
-trigger_memory_alarm(Config) ->
-    OriginalVmMemHighWatermark = get_vm_memory_high_watermark(Config),
-    set_vm_memory_high_watermark(Config, ?LOW_LIMIT_WATERMARK),
-    rabbit_watchdog:delay(?WATCHDOG_INTERVAL * 2),
-    set_vm_memory_high_watermark(Config, OriginalVmMemHighWatermark),
-    rabbit_watchdog:delay(?WATCHDOG_INTERVAL * 2),
-    ok.
-
 setup_watchdog(Config, Node, WD_Interval, Delay) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, Node,
            ?MODULE, init_rabbit_watchdog_remote, [WD_Interval, Delay]),
@@ -146,11 +151,3 @@ rabbitmq_management_pid_remote(TRef, TimerChecker) ->
             TimerChecker ! stop,
             Pid
     end.
-
-get_vm_memory_high_watermark(Config) ->
-    rabbit_ct_broker_helpers:rpc(Config, 0,
-      vm_memory_monitor, get_vm_memory_high_watermark, []).
-
-set_vm_memory_high_watermark(Config, Percentage) ->
-    rabbit_ct_broker_helpers:rpc(Config, 0,
-      vm_memory_monitor, set_vm_memory_high_watermark, [Percentage]).

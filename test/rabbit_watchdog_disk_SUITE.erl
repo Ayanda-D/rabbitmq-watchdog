@@ -23,6 +23,7 @@
 -define(RABBITMQ_MGMT_STARTUP_TIMEOUT, 10000).
 -define(WATCHDOG_INTERVAL, 200).
 
+
 -define(NR_TMP_DIRS, 10).
 
 -compile(export_all).
@@ -39,7 +40,9 @@ groups() ->
           watchdog_with_disk_free_limit_reached_forbidden_dirs,
           watchdog_with_disk_free_limit_reached_forbidden_dirs_forced,
           watchdog_with_disk_free_limit_reached_forbidden_dirs_hard,
-          watchdog_with_disk_free_limit_reached_forbidden_dirs_other_mod
+          watchdog_with_disk_free_limit_reached_forbidden_dirs_other_mod,
+          watchdog_with_unrelated_alarm_detected,
+          watchdog_with_no_alarm_detected
         ]}
     ].
 
@@ -88,7 +91,7 @@ watchdog_with_disk_free_limit_reached(Config) ->
 
     ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, TempDirs),
 
-    ok = trigger_disk_free_alarm(Config),
+    ok = rabbit_watchdog_tests_util:trigger_disk_free_alarm(Config),
 
     check_dirs_deleted(Config, TempDirs),
 
@@ -98,16 +101,44 @@ watchdog_with_disk_free_limit_reached_forbidden_dirs(Config) ->
     forbidden_dir_test(Config).
 
 watchdog_with_disk_free_limit_reached_forbidden_dirs_forced(Config) ->
-    % Forced dirs are delted
+    % Forced dirs are deleted
     forbidden_dir_test(Config, force).
 
 watchdog_with_disk_free_limit_reached_forbidden_dirs_hard(Config) ->
-    % Hard dirs are delted
+    % Hard dirs are deleted
     forbidden_dir_test(Config, hard).
 
 watchdog_with_disk_free_limit_reached_forbidden_dirs_other_mod(Config) ->
     % Other modifiers are ignored
     forbidden_dir_test(Config, other_mod).
+
+
+watchdog_with_unrelated_alarm_detected(Config) ->
+    TempDirs = lists:map(fun (_) -> create_temp_dir(Config) end,
+                         lists:seq(1, ?NR_TMP_DIRS)),
+    TempDirs = ExpectedToRemain = collect_existing_dirs(Config, TempDirs),
+
+    ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, TempDirs),
+
+    ok = rabbit_watchdog_tests_util:trigger_memory_alarm(Config),
+
+    check_dirs_deleted(Config, TempDirs, ExpectedToRemain),
+
+    passed.
+
+
+watchdog_with_no_alarm_detected(Config) ->
+    TempDirs = lists:map(fun (_) -> create_temp_dir(Config) end,
+                         lists:seq(1, ?NR_TMP_DIRS)),
+    TempDirs = ExpectedToRemain = collect_existing_dirs(Config, TempDirs),
+
+    ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, TempDirs),
+
+    rabbit_watchdog:delay(?WATCHDOG_INTERVAL * 2),
+
+    check_dirs_deleted(Config, TempDirs, ExpectedToRemain),
+
+    passed.
 
 %% ---------
 %% Internal
@@ -135,7 +166,7 @@ forbidden_dir_test(Config, Mod) ->
 
             ok = setup_watchdog(Config, 0, ?WATCHDOG_INTERVAL, TempDirsWithMod),
 
-            ok = trigger_disk_free_alarm(Config),
+            ok = rabbit_watchdog_tests_util:trigger_disk_free_alarm(Config),
 
             check_dirs_deleted(Config, TempDirs, ExpectedToRemain);
 
@@ -143,14 +174,6 @@ forbidden_dir_test(Config, Mod) ->
             ok
     end,
     passed.
-
-trigger_disk_free_alarm(Config) ->
-    OrigDiskFreeLimit = get_disk_free_limit(Config),
-    DiskFree = disk_free(Config),
-
-    ok = set_disk_free_limit(Config, io_lib:format("~w", [100 * DiskFree])),
-    rabbit_watchdog:delay(?WATCHDOG_INTERVAL * 2),
-    set_disk_free_limit(Config, OrigDiskFreeLimit).
 
 setup_watchdog(Config, Node, WD_Interval, TempDirs) ->
     ok = rabbit_ct_broker_helpers:rpc(Config, Node,
@@ -160,23 +183,8 @@ setup_watchdog(Config, Node, WD_Interval, TempDirs) ->
 init_rabbit_watchdog_remote(WD_Interval, TempDirs) ->
     application:set_env(rabbitmq_watchdog, watchdogs,
         [{"Disk Watchdog", rabbit_watchdog_disk, WD_Interval,
-          [{dirs, TempDirs}]}]),
+          [{rm_dirs, TempDirs}]}]),
     ok = application:start(rabbitmq_watchdog).
-
-set_disk_free_limit(Config, Limit) ->
-    rabbit_ct_broker_helpers:rpc(
-      Config, 0, rabbit_disk_monitor, set_disk_free_limit, [Limit]).
-
-get_disk_free_limit(Config) ->
-    rabbit_ct_broker_helpers:rpc(
-      Config, 0, rabbit_disk_monitor, get_disk_free_limit, []).
-
-disk_free(Config) ->
-    RabbitStatus = rabbit_status(Config),
-    rabbit_misc:pget(disk_free, RabbitStatus).
-
-rabbit_status(Config) ->
-    rabbit_ct_broker_helpers:rpc(Config, 0, rabbit, status, []).
 
 create_temp_dir(Config) ->
     rabbit_ct_broker_helpers:rpc(
