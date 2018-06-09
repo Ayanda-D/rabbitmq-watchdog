@@ -22,6 +22,7 @@ All watchdog's are an implementation of the `rabbit_watchdog` behaviour, which r
 | rabbit\_watchdog\_rabbit  | The rabbit application watchdog carries out healthecks at each interval. On health-check failure, it doesn't carry out any drastic corrective actions like restarting the application. Instead it issues a warning indicating health check failure. Altering behaviour of how it out corective actions is left to the engineers descretion | 5000 |
 | rabbit\_watchdog\_shovel | The shovel watchdog checks if configured shovels are consistant with the number of active shovels. If inconsistances are found (perhaps network issues were experienced and links were permanantly terminated), the shovel application will be restarted in attempt to restablished connection links | 5000 |
 | rabbit\_watchdog\_management | Resource alarms are checked, in case the RabbitMQ node is under high memory utilization. In case of any memory problems, this watchdog will restart the management application | 3600000 |
+| rabbit\_watchdog\_disk | Checks for any active disk resource alarms raised by the node. In case of any, this watchdog will attempt to free up disk space by clearing the directories specified by the user in it's configuration, under the `rm_dirs` option field. e.g. `[{rm_dirs, [ "DIR1", "DIR2", ... ]}]`. However not all directories may be cleared, for example if `/etc` or `C:/Windows` directories were accidentally configured, the watchdog will **not** permit their removal. However, this behaviour may be overriden by configuring directories with the `force` or `hard` key. e.g. `[{rm_dirs, [ "DIR1", {"DIR2", force}, ... ]}]`, `DIR2` would be forcefully removed if the node is out of disk space | 3600000 |
 
 ## Supported RabbitMQ Versions
 
@@ -49,7 +50,8 @@ The Watchdog plugin is configured in the `rabbitmq.config` or `advanced.config` 
     [{watchdogs,
         [{"Rabbit Watchdog", rabbit_watchdog_rabbit, 5000, [{delay, 1000}]},
          {"Shovel Watchdog", rabbit_watchdog_shovel, 5000, [{delay, 1000}]},
-         {"Management Watchdog", rabbit_watchdog_management, 3600000, []}]}]
+         {"Management Watchdog", rabbit_watchdog_management, 3600000, []}]},
+         {"Disk Watchdog", rabbit_watchdog_disk, 3600000, [{rm_dirs, []}]}]
  }].
 ```
 
