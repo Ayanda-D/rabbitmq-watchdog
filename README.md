@@ -37,7 +37,7 @@ about how to install plugins that do not ship with RabbitMQ.
 
 ## Build
 
-Clone and build the plugin by executing `make`. To create a package, execute `make dist` and find the `.ez` package file in the plugins directory.
+Clone and build the plugin by executing `make`. To create a package, execute `make dist` and find the `.ez` package file in the plugins directory. Listed [realease](https://github.com/Ayanda-D/rabbitmq-watchdog/releases) packages are built from `3.6.x` branch.
 
 ## Testing
 
