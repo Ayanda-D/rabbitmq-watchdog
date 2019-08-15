@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Ayanda-D/rabbitmq-watchdog.svg?branch=master)](https://travis-ci.org/Ayanda-D/rabbitmq-watchdog)
 
-RabbitMQ consists of multiple applications and sub-components which, during the node's uptime may undergo or be subjected to, a number of operations leading to disruptions in the manner in which they operate. For example, performance of the RabbitMQ Management plugin may be affected by a node's high memory utilization, or, shovel/federation links may have been permanently terminated due to terrible network conditions. In such instances, operators may, or may not, have immediate access to the affected installation in order to carry out recovery procedures for the affected sub-components. Hence the need of this plugin, whcih introduces a watchdog layer .
+RabbitMQ consists of multiple applications and sub-components which, during the node's uptime may undergo or be subjected to, a number of operations leading to disruptions in the manner in which they operate. For example, performance of the RabbitMQ Management plugin may be affected by a node's high memory utilization, or, shovel/federation links may have been permanently terminated due to terrible network conditions. In such instances, operators may, or may not, have immediate access to the affected installation in order to carry out recovery procedures for the affected sub-components. Hence the need of this plugin, which introduces a watchdog layer.
 
 The RabbitMQ Watchdog plugin is a sub-system designed and built to target other internal RabbitMQ sub-components, with the purpose of assisting in checking for operation validity, upon which hypothesis is made on the type of action to take next, as recovery attempt and strategy.
 
@@ -17,7 +17,7 @@ Each watchdog process will execute over time intervals (depicted as `T1`, `T2`, 
 
 ## Watchdogs
 
-All watchdog's are an implementation of the `rabbit_watchdog` behaviour, which requires four callback functions required for initialization, validation, executing action plans and carrying out any necessary cleanup procedures on termination. Currently supported watchdogs are summarized in the following table:
+All watchdogs are an implementations of the `rabbit_watchdog` behaviour, which requires four callback functions required for initialization, validation, executing action plans and carrying out any necessary cleanup procedures on termination. Currently supported watchdogs are summarized in the following table:
 
 | WATCHDOG NAME  | DESCRIPTION  | INTERVAL (ms) |
 |---|---|---|
